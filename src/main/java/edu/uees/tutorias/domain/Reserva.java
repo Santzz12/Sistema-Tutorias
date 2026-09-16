@@ -1,5 +1,8 @@
 package edu.uees.tutorias.domain;
 
+import edu.uees.tutorias.observer.ObservadorReserva;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public final class Reserva {
@@ -10,6 +13,7 @@ public final class Reserva {
     private final String tema;
     private final String observaciones;
     private final boolean enviarRecordatorio;
+    private final List<ObservadorReserva> observadores = new ArrayList<>();
 
     public Reserva(
             String id,
@@ -34,7 +38,7 @@ public final class Reserva {
     public void confirmar() {
         exigirEstado(EstadoReserva.SOLICITADA, "confirmar");
         horario.reservar();
-        estado = EstadoReserva.CONFIRMADA;
+        cambiarEstado(EstadoReserva.CONFIRMADA);
     }
 
     public void cancelar() {
@@ -44,12 +48,27 @@ public final class Reserva {
         if (estado == EstadoReserva.CONFIRMADA) {
             horario.liberar();
         }
-        estado = EstadoReserva.CANCELADA;
+        cambiarEstado(EstadoReserva.CANCELADA);
     }
 
     public void finalizar() {
         exigirEstado(EstadoReserva.CONFIRMADA, "finalizar");
-        estado = EstadoReserva.FINALIZADA;
+        cambiarEstado(EstadoReserva.FINALIZADA);
+    }
+
+    public void agregarObservador(ObservadorReserva observador) {
+        observadores.add(Objects.requireNonNull(observador, "observador es obligatorio"));
+    }
+
+    public void eliminarObservador(ObservadorReserva observador) {
+        observadores.remove(observador);
+    }
+
+    private void cambiarEstado(EstadoReserva nuevoEstado) {
+        EstadoReserva estadoAnterior = estado;
+        estado = nuevoEstado;
+        observadores.forEach(observador ->
+                observador.actualizar(this, estadoAnterior, nuevoEstado));
     }
 
     private void exigirEstado(EstadoReserva esperado, String operacion) {
