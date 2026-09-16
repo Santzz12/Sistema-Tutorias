@@ -1,26 +1,34 @@
 package edu.uees.tutorias.domain;
 
 import java.util.Objects;
+import java.util.UUID;
 
+/**
+ * Abstracción común para los usuarios que participan en las tutorías.
+ */
 public abstract class Usuario {
-    private final String id;
+    private final UUID id;
     private final String nombre;
     private final String email;
 
-    protected Usuario(String id, String nombre, String email) {
-        this.id = validarTexto(id, "id");
-        this.nombre = validarTexto(nombre, "nombre");
-        this.email = validarTexto(email, "email");
+    protected Usuario(UUID id, String nombre, String email) {
+        this.id = Objects.requireNonNull(id, "El id es obligatorio");
+        this.nombre = validarTexto(nombre, "El nombre es obligatorio");
+        this.email = validarTexto(email, "El email es obligatorio");
     }
 
-    private static String validarTexto(String valor, String campo) {
+    protected Usuario(String nombre, String email) {
+        this(UUID.randomUUID(), nombre, email);
+    }
+
+    private static String validarTexto(String valor, String mensaje) {
         if (valor == null || valor.isBlank()) {
-            throw new IllegalArgumentException(campo + " es obligatorio");
+            throw new IllegalArgumentException(mensaje);
         }
-        return valor;
+        return valor.trim();
     }
 
-    public String getId() {
+    public UUID getId() {
         return id;
     }
 
@@ -30,21 +38,5 @@ public abstract class Usuario {
 
     public String getEmail() {
         return email;
-    }
-
-    @Override
-    public boolean equals(Object otro) {
-        if (this == otro) {
-            return true;
-        }
-        if (!(otro instanceof Usuario usuario)) {
-            return false;
-        }
-        return id.equals(usuario.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
     }
 }

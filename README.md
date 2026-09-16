@@ -1,109 +1,196 @@
-# Sistema de gestión de tutorías
+# Sistema de gestión de tutorías — Ae3 Incremento 1
 
-Incremento 1 del proyecto integrador de Diseño de Software. El proyecto evoluciona la base de Ae1 de esta cuenta e integra Builder y Factory Method de la solución anterior como preparación para Ae3. En Ae3 incorpora Strategy y Observer para resolver dos puntos de variación reales: las políticas de cancelación y las reacciones de varios componentes ante un cambio de estado.
+Proyecto de **Diseño de Software (UCOM0310)** evolucionado a partir de Ae1 y Ae2 para el **Ae3 – Incremento 1 del proyecto**.
 
-## Alcance del incremento
+## Propósito
 
-Tras preparar la base con Builder y Factory Method, el proyecto permite construir reservas, confirmar, cancelar y finalizar, además de crear canales de notificación. Sin embargo, una única regla de cancelación obligaría a modificar el servicio cada vez que apareciera otra política. También existía acoplamiento si `Reserva` llamaba directamente al correo, calendario y panel cada vez que cambiaba su estado.
+Gestionar tutorías entre estudiantes y docentes manteniendo separadas las reglas del dominio, la persistencia, la creación de objetos, las políticas variables y las reacciones ante eventos.
 
-El incremento resuelve estos problemas sin reemplazar los patrones de Ae2:
+## Estado inicial recuperado de Ae1
 
-- **Strategy:** encapsula la política regular y la prioritaria detrás de `PoliticaCancelacion`.
-- **Observer:** permite que correo, calendario y panel reaccionen a cambios de estado sin quedar incorporados dentro de `Reserva`.
-- **Builder:** continúa controlando la construcción legible de `Reserva`.
-- **Factory Method:** continúa seleccionando el canal concreto de notificación.
+La base del sistema conserva las entidades `Usuario`, `Estudiante`, `Docente`, `HorarioDisponible`, `Reserva` y `EstadoReserva`, además de `ReservaRepository`, `MemoriaReservaRepository`, `Notificador` y `ServicioReservas`.
 
-## Componentes principales
+La lógica principal continúa dependiendo de abstracciones para evitar acoplamiento directo con tecnologías concretas.
 
-| Componente | Responsabilidad |
+## Patrones recuperados de Ae2
+
+### Builder
+
+Se mantiene `ReservaBuilder` porque `Reserva` maneja datos obligatorios y opcionales:
+
+- `estudiante` y `horario` son obligatorios para construir una reserva.
+- `id` se genera por defecto, aunque puede definirse explícitamente.
+- `tema`, `observaciones` y `enviarRecordatorio` son opcionales.
+- El estado inicial permanece controlado como `SOLICITADA`.
+
+**Beneficio:** evita constructores extensos y permite una construcción progresiva y legible.
+
+**Costo/compromiso:** incorpora una clase adicional y varios métodos de configuración.
+
+### Factory Method
+
+Se mantiene Factory Method para crear distintas implementaciones de `Notificador` sin acoplar al cliente a clases concretas.
+
+Participantes principales:
+
+- `NotificacionFactory`
+- `EmailFactory`
+- `SmsFactory`
+- `WhatsAppFactory`
+- `PushFactory`
+- `NotificadorEmail`
+- `NotificadorSms`
+- `NotificadorWhatsApp`
+- `NotificadorPush`
+
+**Beneficio:** permite agregar canales sin modificar el código que trabaja con `Notificador`.
+
+**Costo/compromiso:** aumenta el número de clases al existir una fábrica y un producto concreto por variante.
+
+## Problemas de diseño identificados para Ae3
+
+### 1. Política de cancelación variable
+
+**Problema real:** la regla para permitir una cancelación puede cambiar de manera independiente del resto del caso de uso. Mantenerla fija dentro de `ServicioReservas` aumenta el acoplamiento entre coordinación y política.
+
+**Contexto:** una política estándar permite cancelar cualquier reserva que no haya finalizado, mientras que una política restrictiva solo permite cancelar reservas en estado `SOLICITADA`.
+
+**Patrón seleccionado:** **Strategy**.
+
+- `PoliticaCancelacion`
+- `CancelacionEstandar`
+- `CancelacionSoloSolicitada`
+
+**Qué permanece estable:** `ServicioReservas` continúa coordinando la operación de cancelación y `Reserva` conserva las reglas invariantes de su ciclo de vida.
+
+**Beneficio:** la política puede sustituirse en tiempo de ejecución mediante `cambiarPoliticaCancelacion(...)` sin modificar el servicio.
+
+**Costo/compromiso:** se añaden una interfaz y clases de estrategia, y existe una indirección adicional para comprender el flujo de cancelación.
+
+**Verificación:** las pruebas cambian la estrategia de un mismo `ServicioReservas` y comprueban que el resultado de cancelar cambia según la política seleccionada.
+
+### 2. Múltiples componentes reaccionan a cambios de una reserva
+
+**Problema real:** notificaciones, auditoría u otros componentes pueden necesitar enterarse cuando una reserva se solicita, confirma, cancela, reprograma o completa. Si el servicio conoce cada reacción concreta, aumenta el acoplamiento.
+
+**Contexto:** la notificación al usuario y el registro de auditoría deben reaccionar al mismo evento sin formar parte de la regla de negocio de `Reserva`.
+
+**Patrón seleccionado:** **Observer**.
+
+- `ReservaObserver`
+- `NotificacionReservaObserver`
+- `AuditoriaReservaObserver`
+
+**Qué permanece estable:** `ServicioReservas` publica cambios de reserva sin conocer cómo cada receptor procesa el evento.
+
+**Beneficio:** se pueden agregar nuevos receptores sin modificar la lógica principal del servicio.
+
+**Costo/compromiso:** el flujo deja de ser completamente directo porque una operación puede producir efectos a través de una colección de observers.
+
+**Verificación:** una prueba registra un observer y comprueba que recibe los eventos de solicitud y confirmación.
+
+## Patrones utilizados
+
+| Patrón | Uso en el proyecto |
 |---|---|
-| `Reserva` | Protege su ciclo de vida y publica cambios de estado. |
-| `ReservaBuilder` | Construye reservas y valida los datos obligatorios. |
-| `PoliticaCancelacion` | Define el contrato estable de una regla de cancelación. |
-| `ServicioCancelacion` | Ejecuta la política inyectada y cancela cuando corresponde. |
-| `ObservadorReserva` | Define la reacción ante un cambio de estado. |
-| `CalendarioObserver` | Registra actualizaciones del calendario. |
-| `PanelTutoriasObserver` | Registra actualizaciones del panel. |
-| `NotificacionReservaObserver` | Delega el aviso al Factory Method de notificación. |
+| Builder | Construcción progresiva de `Reserva` |
+| Factory Method | Creación de canales de notificación |
+| Strategy | Políticas intercambiables de cancelación |
+| Observer | Reacción desacoplada a cambios de reserva |
 
-## Reglas demostradas
+## Principios SOLID relacionados
 
-- La política regular requiere al menos 2 horas de anticipación.
-- La política prioritaria requiere al menos 30 minutos.
-- Solo las reservas `SOLICITADA` o `CONFIRMADA` pueden cancelarse.
-- Cada cambio de estado se publica a los observadores registrados.
+### SRP — Single Responsibility Principle
 
-## Principios de diseño
+- `Reserva` protege su ciclo de vida.
+- `ReservaBuilder` se ocupa de construir reservas.
+- Las fábricas se ocupan de crear notificadores.
+- Las estrategias encapsulan políticas de cancelación.
+- Los observers encapsulan reacciones ante eventos.
+- `ServicioReservas` coordina el caso de uso.
 
-- **SRP:** la selección de reglas, la construcción y las reacciones externas están en clases separadas.
-- **OCP:** una nueva política u observador se agrega mediante otra implementación, sin modificar `ServicioCancelacion` ni los observadores existentes.
-- **DIP:** `ServicioCancelacion` depende de `PoliticaCancelacion` y `Reserva` depende de `ObservadorReserva`, no de implementaciones concretas.
-- **Cohesión y acoplamiento:** cada paquete agrupa una responsabilidad y las dependencias entre paquetes pasan por contratos explícitos.
+### OCP — Open/Closed Principle
 
-## UML actualizado
+Se pueden agregar nuevos canales de notificación, nuevas políticas de cancelación u observers sin reescribir las clases existentes que dependen de las abstracciones.
 
-![UML del incremento 1](docs/uml-incremento1.png)
+### DIP — Dependency Inversion Principle
 
-El archivo fuente editable está en [`docs/uml-incremento1.puml`](docs/uml-incremento1.puml).
+`ServicioReservas` depende de `ReservaRepository`, `PoliticaCancelacion` y `ReservaObserver`, no de implementaciones concretas de persistencia, políticas o receptores.
 
-## Estructura
+## Estructura principal
 
 ```text
-sistema-tutorias-ae3/
-├── docs/
-│   ├── uml-incremento1.puml
-│   └── uml-incremento1.png
-├── src/main/java/edu/uees/tutorias/
-│   ├── builder/
-│   ├── cancelacion/
-│   ├── domain/
-│   ├── notificacion/
-│   └── observer/
-├── src/test/java/edu/uees/tutorias/
+sistema-tutorias/
+├── README.md
 ├── pom.xml
-└── README.md
+├── docs/
+│   ├── modelo-clases.puml
+│   └── uml-incremento1.puml
+├── .github/workflows/
+│   └── ae3-ci.yml
+└── src/
+    ├── main/java/edu/uees/tutorias/
+    │   ├── App.java
+    │   ├── builder/
+    │   ├── domain/
+    │   ├── factory/
+    │   ├── notification/
+    │   ├── observer/
+    │   ├── repository/
+    │   ├── service/
+    │   └── strategy/
+    └── test/java/edu/uees/tutorias/
+        └── Ae3PatternsTest.java
 ```
 
-## Requisitos
+## Compilar
 
-- Java 17
-- Maven 3.9 o superior
-
-## Compilar y verificar
+Requiere JDK 17 y Maven.
 
 ```bash
 mvn clean compile
+```
+
+## Ejecutar pruebas
+
+```bash
 mvn clean test
-mvn exec:java
 ```
 
-Resultado verificado: 8 pruebas ejecutadas, 0 fallos y 0 errores.
+Las pruebas verifican:
 
-La demostración imprime los cambios de estado enviados por correo, el resultado de ambas políticas y la cantidad de eventos recibidos por calendario y panel.
+- valores por defecto de Builder;
+- creación del producto esperado mediante Factory Method;
+- intercambio de políticas Strategy dentro de `ServicioReservas`;
+- publicación de eventos Observer;
+- comportamiento de la política restrictiva.
 
-## Etapas del incremento
+## Ejecutar la demostración
 
-```text
-refactor: preparar base de Ae3 con Builder y Factory Method
-feat: aplicar strategy a politicas de cancelacion
-feat: notificar cambios de reserva con observer
-feat: integrar patrones en flujo de demostracion
-docs: agregar UML del incremento 1
-docs: actualizar README y decisiones de diseño
+```bash
+java -cp target/classes edu.uees.tutorias.App
 ```
+
+La demostración crea una reserva, utiliza `EmailFactory`, registra observers, confirma la reserva y posteriormente la cancela utilizando `CancelacionEstandar`.
+
+## Verificación automática
+
+El workflow `.github/workflows/ae3-ci.yml` ejecuta `mvn clean test` y posteriormente la demostración de `App` en Java 17 para comprobar el incremento en cada actualización de la rama y del Pull Request.
+
+## UML del incremento
+
+Fuente PlantUML actualizada:
+
+- [`docs/uml-incremento1.puml`](docs/uml-incremento1.puml)
+
+El diagrama incluye las clases del dominio y las relaciones introducidas por Builder, Factory Method, Strategy y Observer.
 
 ## Repositorio
 
 https://github.com/Santzz12/Sistema-Tutorias
 
-## Uso de inteligencia artificial
+Rama de desarrollo del Ae3: `ae3-incremento1`.
 
-Se utilizó inteligencia artificial como apoyo para estructurar el incremento, revisar la coherencia entre UML y Java, proponer casos de prueba y mejorar la documentación. El código fue compilado y probado, y el estudiante debe revisar y comprender cada decisión antes de la entrega.
+## Declaración de uso de inteligencia artificial
 
-## Continuidad y limitaciones
-
-La migración desde la base real de esta cuenta está documentada en [continuidad-ae3.md](docs/continuidad-ae3.md). Las notificaciones se simulan en consola y calendario/panel guardan eventos en memoria. Los clientes deben cancelar mediante `ServicioCancelacion` para aplicar la política. Observer es síncrono y no incorpora reintentos ni aislamiento de fallos.
-
-## Evidencias de ejecución
-
-Los [resultados por etapa](docs/evidencias/) contienen extractos reales de Maven y de la demostración. La suite termina con 8 pruebas, 0 fallos y 0 errores. Se incluyen vistas ampliadas de [Strategy](docs/uml-strategy.png) y [Observer](docs/uml-observer.png), con fuentes PlantUML editables.
+Durante el desarrollo se utilizaron herramientas de inteligencia artificial como apoyo para revisar la continuidad con Ae1 y Ae2, proponer e implementar la integración de patrones, revisar coherencia entre responsabilidades, código y UML y mejorar la documentación. El contenido fue revisado en relación con la consigna y debe ser ejecutado, comprendido y defendido por el estudiante antes de su entrega.

@@ -7,12 +7,13 @@
     <groupId>edu.uees</groupId>
     <artifactId>sistema-tutorias</artifactId>
     <version>1.0.0</version>
-    <name>Sistema de gestion de tutorias</name>
+    <name>Sistema de gestión de tutorías</name>
 
     <properties>
-        <maven.compiler.release>17</maven.compiler.release>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <junit.version>5.11.3</junit.version>
+        <junit.version>5.11.0</junit.version>
     </properties>
 
     <dependencies>
@@ -28,24 +29,8 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.2</version>
-                <configuration>
-                    <useModulePath>false</useModulePath>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
                 <version>3.5.0</version>
-                <configuration>
-                    <mainClass>edu.uees.tutorias.App</mainClass>
-                </configuration>
             </plugin>
         </plugins>
     </build>

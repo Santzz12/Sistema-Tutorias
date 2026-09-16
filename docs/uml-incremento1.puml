@@ -1,117 +1,153 @@
 @startuml
-!pragma layout smetana
-skinparam backgroundColor white
-skinparam shadowing false
 skinparam classAttributeIconSize 0
-skinparam defaultFontName Arial
-skinparam defaultFontSize 12
-skinparam packageStyle rectangle
-skinparam class {
-  BackgroundColor #F8FAFC
-  BorderColor #334155
-  ArrowColor #475569
+skinparam shadowing false
+skinparam linetype ortho
+
+abstract class Usuario {
+  - id : UUID
+  - nombre : String
+  - email : String
 }
-skinparam interface {
-  BackgroundColor #DBEAFE
-  BorderColor #1D4ED8
+class Estudiante { - carrera : String }
+class Docente {
+  - especialidad : String
+  - horarios : List<HorarioDisponible>
+  + publicarHorario(inicio, fin) : HorarioDisponible
 }
-
-title Sistema de gestión de tutorías - Incremento 1
-
-package "Dominio" {
-  class Reserva {
-    - id: String
-    - estado: EstadoReserva
-    - observadores: List<ObservadorReserva>
-    + confirmar(): void
-    + cancelar(): void
-    + finalizar(): void
-    + agregarObservador(o): void
-    + eliminarObservador(o): void
-  }
-
-  enum EstadoReserva {
-    SOLICITADA
-    CONFIRMADA
-    CANCELADA
-    FINALIZADA
-  }
-
-  class Estudiante
-  class HorarioDisponible {
-    - inicio: LocalDateTime
-    - fin: LocalDateTime
-    - reservado: boolean
-    + reservar(): void
-    + liberar(): void
-  }
+class HorarioDisponible {
+  - id : UUID
+  - docente : Docente
+  - inicio : LocalDateTime
+  - fin : LocalDateTime
+  - reservado : boolean
+  + estaDisponible() : boolean
+  + reservar() : void
+  + liberar() : void
 }
-
-package "Builder conservado de Ae2" {
-  class ReservaBuilder {
-    + id(valor): ReservaBuilder
-    + estudiante(valor): ReservaBuilder
-    + horario(valor): ReservaBuilder
-    + tema(valor): ReservaBuilder
-    + build(): Reserva
-  }
+class Reserva {
+  - id : UUID
+  - estudiante : Estudiante
+  - horario : HorarioDisponible
+  - estado : EstadoReserva
+  - tema : String
+  - observaciones : String
+  - enviarRecordatorio : boolean
+  + confirmar() : void
+  + cancelar() : void
+  + reprogramar(nuevoHorario) : void
+  + completar() : void
+}
+enum EstadoReserva {
+  SOLICITADA
+  CONFIRMADA
+  REPROGRAMADA
+  CANCELADA
+  COMPLETADA
 }
 
-package "Strategy de cancelación" {
-  interface PoliticaCancelacion {
-    + permiteCancelar(reserva, momento): boolean
-    + nombre(): String
-  }
-  class PoliticaCancelacionRegular
-  class PoliticaCancelacionPrioritaria
-  class ServicioCancelacion {
-    - politica: PoliticaCancelacion
-    + cancelar(reserva, momento): ResultadoCancelacion
-  }
-  class ResultadoCancelacion
+class ReservaBuilder <<Builder>> {
+  - id : UUID
+  - estudiante : Estudiante
+  - horario : HorarioDisponible
+  - tema : String
+  - observaciones : String
+  - enviarRecordatorio : boolean
+  + estudiante(e) : ReservaBuilder
+  + horario(h) : ReservaBuilder
+  + tema(t) : ReservaBuilder
+  + observaciones(o) : ReservaBuilder
+  + enviarRecordatorio(v) : ReservaBuilder
+  + build() : Reserva
 }
 
-package "Observer de cambios" {
-  interface ObservadorReserva {
-    + actualizar(reserva, anterior, actual): void
-  }
-  class CalendarioObserver
-  class PanelTutoriasObserver
-  class NotificacionReservaObserver
+interface ReservaRepository {
+  + guardar(reserva) : Reserva
+  + buscarPorId(id) : Optional<Reserva>
+  + listar() : List<Reserva>
+}
+class MemoriaReservaRepository
+
+interface Notificador {
+  + enviar(usuario, mensaje) : void
+}
+class NotificadorConsola
+class NotificadorEmail
+class NotificadorSms
+class NotificadorWhatsApp
+class NotificadorPush
+
+abstract class NotificacionFactory <<Factory Method>> {
+  + crearNotificador() : Notificador
+  + notificar(usuario, mensaje) : void
+}
+class EmailFactory
+class SmsFactory
+class WhatsAppFactory
+class PushFactory
+
+interface PoliticaCancelacion <<Strategy>> {
+  + puedeCancelar(reserva) : boolean
+  + descripcion() : String
+}
+class CancelacionEstandar
+class CancelacionSoloSolicitada
+
+interface ReservaObserver <<Observer>> {
+  + actualizar(reserva, evento) : void
+}
+class NotificacionReservaObserver {
+  - notificador : Notificador
+}
+class AuditoriaReservaObserver
+
+class ServicioReservas {
+  - reservaRepository : ReservaRepository
+  - observers : List<ReservaObserver>
+  - politicaCancelacion : PoliticaCancelacion
+  + registrarObserver(observer) : void
+  + eliminarObserver(observer) : void
+  + cambiarPoliticaCancelacion(politica) : void
+  + solicitarTutoria(estudiante, horario) : Reserva
+  + confirmarReserva(id) : Reserva
+  + cancelarReserva(id) : Reserva
+  + reprogramarReserva(id, nuevoHorario) : Reserva
+  + completarReserva(id) : Reserva
 }
 
-package "Factory Method conservado de Ae2" {
-  interface Notificador {
-    + enviar(destinatario, mensaje): void
-  }
-  abstract class NotificacionFactory {
-    + crearNotificador(): Notificador
-    + notificar(destinatario, mensaje): void
-  }
-  class EmailFactory
-  class NotificadorEmail
-}
-
-Reserva --> EstadoReserva
-Reserva --> Estudiante
-Reserva --> HorarioDisponible
+Usuario <|-- Estudiante
+Usuario <|-- Docente
+Docente "1" *-- "0..*" HorarioDisponible : publica
+Estudiante "1" -- "0..*" Reserva : solicita
+HorarioDisponible "1" -- "0..1" Reserva : asignado a
+Reserva --> EstadoReserva : estado
 ReservaBuilder ..> Reserva : construye
+ReservaBuilder --> Estudiante
+ReservaBuilder --> HorarioDisponible
 
-ServicioCancelacion --> PoliticaCancelacion : Strategy
-PoliticaCancelacionRegular ..|> PoliticaCancelacion
-PoliticaCancelacionPrioritaria ..|> PoliticaCancelacion
-ServicioCancelacion ..> Reserva
-ServicioCancelacion ..> ResultadoCancelacion
+ReservaRepository <|.. MemoriaReservaRepository
+Notificador <|.. NotificadorConsola
+Notificador <|.. NotificadorEmail
+Notificador <|.. NotificadorSms
+Notificador <|.. NotificadorWhatsApp
+Notificador <|.. NotificadorPush
+NotificacionFactory <|-- EmailFactory
+NotificacionFactory <|-- SmsFactory
+NotificacionFactory <|-- WhatsAppFactory
+NotificacionFactory <|-- PushFactory
+EmailFactory ..> NotificadorEmail : crea
+SmsFactory ..> NotificadorSms : crea
+WhatsAppFactory ..> NotificadorWhatsApp : crea
+PushFactory ..> NotificadorPush : crea
 
-Reserva "1" o-- "0..*" ObservadorReserva : notifica
-CalendarioObserver ..|> ObservadorReserva
-PanelTutoriasObserver ..|> ObservadorReserva
-NotificacionReservaObserver ..|> ObservadorReserva
-NotificacionReservaObserver --> NotificacionFactory
+PoliticaCancelacion <|.. CancelacionEstandar
+PoliticaCancelacion <|.. CancelacionSoloSolicitada
+ReservaObserver <|.. NotificacionReservaObserver
+ReservaObserver <|.. AuditoriaReservaObserver
+NotificacionReservaObserver --> Notificador : usa
 
-EmailFactory --|> NotificacionFactory
-NotificacionFactory ..> Notificador : crea
-NotificadorEmail ..|> Notificador
-EmailFactory ..> NotificadorEmail
-
+ServicioReservas --> ReservaRepository : depende de
+ServicioReservas --> PoliticaCancelacion : Strategy
+ServicioReservas "1" o-- "0..*" ReservaObserver : notifica
+ServicioReservas ..> ReservaBuilder : crea reservas
+ServicioReservas ..> Reserva : coordina
 @enduml

@@ -1,84 +1,79 @@
 package edu.uees.tutorias.domain;
 
-import edu.uees.tutorias.observer.ObservadorReserva;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
+/**
+ * Registra el encuentro solicitado por un estudiante en un horario de tutoría.
+ * El objeto protege las transiciones válidas de estado.
+ */
 public final class Reserva {
-    private final String id;
+    private final UUID id;
     private final Estudiante estudiante;
-    private final HorarioDisponible horario;
+    private HorarioDisponible horario;
     private EstadoReserva estado;
     private final String tema;
     private final String observaciones;
     private final boolean enviarRecordatorio;
-    private final List<ObservadorReserva> observadores = new ArrayList<>();
 
-    public Reserva(
-            String id,
-            Estudiante estudiante,
-            HorarioDisponible horario,
-            EstadoReserva estado,
-            String tema,
-            String observaciones,
-            boolean enviarRecordatorio) {
-        if (id == null || id.isBlank()) {
-            throw new IllegalArgumentException("id es obligatorio");
-        }
-        this.id = id;
-        this.estudiante = Objects.requireNonNull(estudiante, "estudiante es obligatorio");
-        this.horario = Objects.requireNonNull(horario, "horario es obligatorio");
-        this.estado = Objects.requireNonNull(estado, "estado es obligatorio");
-        this.tema = tema;
-        this.observaciones = observaciones;
+    public Reserva(Estudiante estudiante, HorarioDisponible horario) {
+        this(UUID.randomUUID(), estudiante, horario, EstadoReserva.SOLICITADA,
+                "Sin especificar", "Sin observaciones", false);
+    }
+
+    public Reserva(UUID id, Estudiante estudiante, HorarioDisponible horario, EstadoReserva estado) {
+        this(id, estudiante, horario, estado, "Sin especificar", "Sin observaciones", false);
+    }
+
+    public Reserva(UUID id, Estudiante estudiante, HorarioDisponible horario, EstadoReserva estado,
+                   String tema, String observaciones, boolean enviarRecordatorio) {
+        this.id = Objects.requireNonNull(id, "El id es obligatorio");
+        this.estudiante = Objects.requireNonNull(estudiante, "El estudiante es obligatorio");
+        this.horario = Objects.requireNonNull(horario, "El horario es obligatorio");
+        this.estado = Objects.requireNonNull(estado, "El estado es obligatorio");
+        this.tema = normalizarTexto(tema, "Sin especificar");
+        this.observaciones = normalizarTexto(observaciones, "Sin observaciones");
         this.enviarRecordatorio = enviarRecordatorio;
     }
 
+    private static String normalizarTexto(String valor, String valorPorDefecto) {
+        return valor == null || valor.isBlank() ? valorPorDefecto : valor.trim();
+    }
+
     public void confirmar() {
-        exigirEstado(EstadoReserva.SOLICITADA, "confirmar");
-        horario.reservar();
-        cambiarEstado(EstadoReserva.CONFIRMADA);
+        if (estado != EstadoReserva.SOLICITADA && estado != EstadoReserva.REPROGRAMADA) {
+            throw new IllegalStateException("Solo una reserva solicitada o reprogramada puede confirmarse");
+        }
+        estado = EstadoReserva.CONFIRMADA;
     }
 
     public void cancelar() {
-        if (estado != EstadoReserva.SOLICITADA && estado != EstadoReserva.CONFIRMADA) {
-            throw new IllegalStateException("no se puede cancelar una reserva " + estado);
+        if (estado == EstadoReserva.CANCELADA || estado == EstadoReserva.COMPLETADA) {
+            throw new IllegalStateException("La reserva no puede cancelarse en su estado actual");
         }
-        if (estado == EstadoReserva.CONFIRMADA) {
-            horario.liberar();
+        estado = EstadoReserva.CANCELADA;
+    }
+
+    public void reprogramar(HorarioDisponible nuevoHorario) {
+        Objects.requireNonNull(nuevoHorario, "El nuevo horario es obligatorio");
+        if (estado == EstadoReserva.CANCELADA || estado == EstadoReserva.COMPLETADA) {
+            throw new IllegalStateException("La reserva no puede reprogramarse en su estado actual");
         }
-        cambiarEstado(EstadoReserva.CANCELADA);
-    }
-
-    public void finalizar() {
-        exigirEstado(EstadoReserva.CONFIRMADA, "finalizar");
-        cambiarEstado(EstadoReserva.FINALIZADA);
-    }
-
-    public void agregarObservador(ObservadorReserva observador) {
-        observadores.add(Objects.requireNonNull(observador, "observador es obligatorio"));
-    }
-
-    public void eliminarObservador(ObservadorReserva observador) {
-        observadores.remove(observador);
-    }
-
-    private void cambiarEstado(EstadoReserva nuevoEstado) {
-        EstadoReserva estadoAnterior = estado;
-        estado = nuevoEstado;
-        observadores.forEach(observador ->
-                observador.actualizar(this, estadoAnterior, nuevoEstado));
-    }
-
-    private void exigirEstado(EstadoReserva esperado, String operacion) {
-        if (estado != esperado) {
-            throw new IllegalStateException(
-                    "no se puede " + operacion + " una reserva " + estado);
+        if (!horario.getDocente().getId().equals(nuevoHorario.getDocente().getId())) {
+            throw new IllegalArgumentException("Una reprogramación debe conservar al mismo docente");
         }
+        horario = nuevoHorario;
+        estado = EstadoReserva.REPROGRAMADA;
     }
 
-    public String getId() {
+    public void completar() {
+        if (estado != EstadoReserva.CONFIRMADA) {
+            throw new IllegalStateException("Solo una reserva confirmada puede marcarse como completada");
+        }
+        estado = EstadoReserva.COMPLETADA;
+    }
+
+    public UUID getId() {
         return id;
     }
 
@@ -88,6 +83,10 @@ public final class Reserva {
 
     public HorarioDisponible getHorario() {
         return horario;
+    }
+
+    public Docente getDocente() {
+        return horario.getDocente();
     }
 
     public EstadoReserva getEstado() {

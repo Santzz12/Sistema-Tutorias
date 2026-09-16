@@ -5,15 +5,18 @@ import edu.uees.tutorias.domain.Estudiante;
 import edu.uees.tutorias.domain.HorarioDisponible;
 import edu.uees.tutorias.domain.Reserva;
 
+import java.util.UUID;
+
+/** Construcción progresiva de Reserva con valores por defecto explícitos. */
 public final class ReservaBuilder {
-    private String id;
+    private UUID id = UUID.randomUUID();
     private Estudiante estudiante;
     private HorarioDisponible horario;
     private String tema = "Sin especificar";
     private String observaciones = "Sin observaciones";
     private boolean enviarRecordatorio;
 
-    public ReservaBuilder id(String id) {
+    public ReservaBuilder id(UUID id) {
         this.id = id;
         return this;
     }
@@ -44,26 +47,16 @@ public final class ReservaBuilder {
     }
 
     public Reserva build() {
-        validarObligatorios();
-        return new Reserva(
-                id,
-                estudiante,
-                horario,
-                EstadoReserva.SOLICITADA,
-                tema,
-                observaciones,
-                enviarRecordatorio);
-    }
-
-    private void validarObligatorios() {
-        if (id == null || id.isBlank()) {
-            throw new IllegalStateException("id es obligatorio");
+        if (id == null) {
+            throw new IllegalStateException("El id es obligatorio");
         }
         if (estudiante == null) {
-            throw new IllegalStateException("estudiante es obligatorio");
+            throw new IllegalStateException("El estudiante es obligatorio");
         }
         if (horario == null) {
-            throw new IllegalStateException("horario es obligatorio");
+            throw new IllegalStateException("El horario es obligatorio");
         }
+        return new Reserva(id, estudiante, horario, EstadoReserva.SOLICITADA,
+                tema, observaciones, enviarRecordatorio);
     }
 }

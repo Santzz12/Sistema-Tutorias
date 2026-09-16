@@ -1,25 +1,22 @@
 package edu.uees.tutorias.observer;
 
-import edu.uees.tutorias.domain.EstadoReserva;
 import edu.uees.tutorias.domain.Reserva;
-import edu.uees.tutorias.notificacion.NotificacionFactory;
+import edu.uees.tutorias.notification.Notificador;
+
 import java.util.Objects;
 
-public final class NotificacionReservaObserver implements ObservadorReserva {
-    private final NotificacionFactory fabrica;
+/** Observer que comunica a estudiante y docente cada cambio relevante. */
+public final class NotificacionReservaObserver implements ReservaObserver {
+    private final Notificador notificador;
 
-    public NotificacionReservaObserver(NotificacionFactory fabrica) {
-        this.fabrica = Objects.requireNonNull(fabrica, "fabrica es obligatoria");
+    public NotificacionReservaObserver(Notificador notificador) {
+        this.notificador = Objects.requireNonNull(notificador, "El notificador es obligatorio");
     }
 
     @Override
-    public void actualizar(
-            Reserva reserva,
-            EstadoReserva estadoAnterior,
-            EstadoReserva estadoActual) {
-        fabrica.notificar(
-                reserva.getEstudiante().getEmail(),
-                "Reserva " + reserva.getId() + ": "
-                        + estadoAnterior + " -> " + estadoActual);
+    public void actualizar(Reserva reserva, String evento) {
+        String mensaje = evento + " Estado: " + reserva.getEstado();
+        notificador.enviar(reserva.getEstudiante(), mensaje);
+        notificador.enviar(reserva.getDocente(), mensaje);
     }
 }
