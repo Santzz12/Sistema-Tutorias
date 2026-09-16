@@ -1,7 +1,8 @@
 package edu.uees.tutorias.domain;
 
 public enum EstadoReserva {
-    PENDIENTE, 
-    CONFIRMADA, 
-    CANCELADA
+    SOLICITADA,
+    CONFIRMADA,
+    CANCELADA,
+    FINALIZADA
 }
