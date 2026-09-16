@@ -1,17 +1,17 @@
 package edu.uees.tutorias.domain;
 
-public class Estudiante {
-    private String matricula;
-    private String nombre;
-    private String correo;
+public final class Estudiante extends Usuario {
+    private final String carrera;
 
-    public Estudiante(String matricula, String nombre, String correo) {
-        this.matricula = matricula;
-        this.nombre = nombre;
-        this.correo = correo;
+    public Estudiante(String id, String nombre, String email, String carrera) {
+        super(id, nombre, email);
+        if (carrera == null || carrera.isBlank()) {
+            throw new IllegalArgumentException("carrera es obligatoria");
+        }
+        this.carrera = carrera;
     }
 
-    public String getNombre() {
-        return nombre;
+    public String getCarrera() {
+        return carrera;
     }
 }

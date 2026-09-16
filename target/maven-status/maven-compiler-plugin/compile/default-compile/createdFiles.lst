@@ -1,7 +1,0 @@
-edu\uees\tutorias\service\GestorReservas.class
-edu\uees\tutorias\notification\Notificador.class
-edu\uees\tutorias\domain\Docente.class
-edu\uees\tutorias\domain\HorarioDisponible.class
-edu\uees\tutorias\domain\Estudiante.class
-edu\uees\tutorias\domain\Reserva.class
-edu\uees\tutorias\domain\EstadoReserva.class

@@ -1,0 +1,6 @@
+Comando: mvn -f Pom.xml clean test
+Java 17 | Maven 3.9.11 | 16 de septiembre de 2026
+Extracto de salida real de esta reconstrucción.
+
+[INFO] No tests to run.
+[INFO] BUILD SUCCESS
