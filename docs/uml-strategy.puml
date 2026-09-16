@@ -1,0 +1,56 @@
+@startuml
+!pragma layout smetana
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam defaultFontName Arial
+skinparam defaultFontSize 16
+skinparam class {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  ArrowColor #475569
+}
+skinparam interface {
+  BackgroundColor #DBEAFE
+  BorderColor #1D4ED8
+}
+
+title Strategy aplicado a la cancelación
+
+interface PoliticaCancelacion {
+  + permiteCancelar(reserva, momento): boolean
+  + nombre(): String
+}
+
+class PoliticaCancelacionRegular {
+  {static} MINUTOS_MINIMOS = 120
+  + permiteCancelar(reserva, momento): boolean
+}
+
+class PoliticaCancelacionPrioritaria {
+  {static} MINUTOS_MINIMOS = 30
+  + permiteCancelar(reserva, momento): boolean
+}
+
+class ServicioCancelacion {
+  - politica: PoliticaCancelacion
+  + cancelar(reserva, momento): ResultadoCancelacion
+}
+
+class ResultadoCancelacion {
+  + aceptada: boolean
+  + detalle: String
+}
+
+class Reserva {
+  - estado: EstadoReserva
+  + cancelar(): void
+}
+
+PoliticaCancelacionRegular ..|> PoliticaCancelacion
+PoliticaCancelacionPrioritaria ..|> PoliticaCancelacion
+ServicioCancelacion --> PoliticaCancelacion : usa
+ServicioCancelacion ..> Reserva : cancela
+ServicioCancelacion ..> ResultadoCancelacion : devuelve
+
+@enduml

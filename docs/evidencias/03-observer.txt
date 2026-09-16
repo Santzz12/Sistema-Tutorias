@@ -1,0 +1,14 @@
+Comando: mvn clean test
+Java 17 | Maven 3.9.11 | 16 de septiembre de 2026
+Extracto de salida real de esta reconstrucción.
+
+[INFO] Running edu.uees.tutorias.domain.ReservaTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.045 s -- in edu.uees.tutorias.domain.ReservaTest
+[INFO] Running edu.uees.tutorias.builder.ReservaBuilderTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in edu.uees.tutorias.builder.ReservaBuilderTest
+[INFO] Running edu.uees.tutorias.observer.ReservaObserverTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s -- in edu.uees.tutorias.observer.ReservaObserverTest
+[INFO] Running edu.uees.tutorias.cancelacion.ServicioCancelacionTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in edu.uees.tutorias.cancelacion.ServicioCancelacionTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS

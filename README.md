@@ -103,3 +103,7 @@ Se utilizó inteligencia artificial como apoyo para estructurar el incremento, r
 ## Continuidad y limitaciones
 
 La migración desde la base real de esta cuenta está documentada en [continuidad-ae3.md](docs/continuidad-ae3.md). Las notificaciones se simulan en consola y calendario/panel guardan eventos en memoria. Los clientes deben cancelar mediante `ServicioCancelacion` para aplicar la política. Observer es síncrono y no incorpora reintentos ni aislamiento de fallos.
+
+## Evidencias de ejecución
+
+Los [resultados por etapa](docs/evidencias/) contienen extractos reales de Maven y de la demostración. La suite termina con 8 pruebas, 0 fallos y 0 errores. Se incluyen vistas ampliadas de [Strategy](docs/uml-strategy.png) y [Observer](docs/uml-observer.png), con fuentes PlantUML editables.
